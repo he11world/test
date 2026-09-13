@@ -18,6 +18,23 @@ export const SHIPPING_RATES: Record<string, ShippingRate> = {
   NL: { cents: 549, carrier: 'dhl', estimatedDays: 2 },
 };
 
-export function rateFor(country: string): ShippingRate {
-  return SHIPPING_RATES[country];
+/**
+ * Look up the flat rate for a country.
+ *
+ * Only the countries in SHIPPING_RATES are priced, so the lookup can legitimately
+ * miss. The return type says so: callers must handle `undefined` rather than
+ * dereferencing the result blind.
+ */
+export function rateFor(country: string): ShippingRate | undefined {
+  return Object.prototype.hasOwnProperty.call(SHIPPING_RATES, country)
+    ? SHIPPING_RATES[country]
+    : undefined;
+}
+
+export function isSupportedCountry(country: string): boolean {
+  return rateFor(country) !== undefined;
+}
+
+export function supportedCountries(): string[] {
+  return Object.keys(SHIPPING_RATES);
 }
