@@ -1,4 +1,4 @@
-import type { OrderRequest } from './types.ts';
+import type { DiscountCode, OrderRequest } from './types.ts';
 
 export interface Order {
   customerId: string;
@@ -15,18 +15,20 @@ export class CheckoutService {
       0,
     );
 
-    // This line was never changed. PR #377 only widened the type around it, which
-    // is what makes attribution interesting: the failing code is untouched by the
-    // deployment that broke it.
-    const code = request.discountCode;
-    const discountCents = Math.round(subtotalCents * (code.percentOff / 100));
+    // `discountCode` is optional and nullable on OrderRequest, so it must be
+    // narrowed before it is dereferenced. An order submitted without a code is a
+    // valid order with no discount applied.
+    const code: DiscountCode | null = request.discountCode ?? null;
+    const discountCents = code === null
+      ? 0
+      : Math.round(subtotalCents * (code.percentOff / 100));
 
     return {
       customerId: request.customerId,
       subtotalCents,
       discountCents,
       totalCents: subtotalCents - discountCents,
-      appliedCode: code.value,
+      appliedCode: code === null ? null : code.value,
     };
   }
 }
