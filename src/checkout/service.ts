@@ -1,4 +1,4 @@
-import type { OrderRequest } from './types.ts';
+import type { DiscountCode, OrderRequest } from './types.ts';
 
 export interface Order {
   customerId: string;
@@ -15,18 +15,22 @@ export class CheckoutService {
       0,
     );
 
-    // This line was never changed. PR #377 only widened the type around it, which
-    // is what makes attribution interesting: the failing code is untouched by the
-    // deployment that broke it.
-    const code = request.discountCode;
-    const discountCents = Math.round(subtotalCents * (code.percentOff / 100));
+    // `OrderRequest.discountCode` is optional and nullable: a checkout submitted
+    // without a discount code is a legitimate input. Dereferencing it
+    // unconditionally threw `TypeError: Cannot read properties of undefined
+    // (reading 'percentOff')` for every codeless order, which the HTTP layer
+    // turned into a 500 `checkout_failed`. Normalise the absent case to null and
+    // only price a discount when a code is actually present.
+    const code: DiscountCode | null = request.discountCode ?? null;
+    const discountCents =
+      code === null ? 0 : Math.round(subtotalCents * (code.percentOff / 100));
 
     return {
       customerId: request.customerId,
       subtotalCents,
       discountCents,
       totalCents: subtotalCents - discountCents,
-      appliedCode: code.value,
+      appliedCode: code === null ? null : code.value,
     };
   }
 }
