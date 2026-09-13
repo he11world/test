@@ -1,9 +1,12 @@
 import type { OrderRequest } from './types.ts';
+import { rateFor } from './shipping.ts';
 
 export interface Order {
   customerId: string;
   subtotalCents: number;
   discountCents: number;
+  shippingCents: number;
+  carrier: string;
   totalCents: number;
   appliedCode: string | null;
 }
@@ -15,18 +18,19 @@ export class CheckoutService {
       0,
     );
 
-    // This line was never changed. PR #377 only widened the type around it, which
-    // is what makes attribution interesting: the failing code is untouched by the
-    // deployment that broke it.
-    const code = request.discountCode;
-    const discountCents = Math.round(subtotalCents * (code.percentOff / 100));
+    const code = request.discountCode ?? null;
+    const discountCents = code ? Math.round(subtotalCents * (code.percentOff / 100)) : 0;
+
+    const rate = rateFor(request.destination.country);
 
     return {
       customerId: request.customerId,
       subtotalCents,
       discountCents,
-      totalCents: subtotalCents - discountCents,
-      appliedCode: code.value,
+      shippingCents: rate.cents,
+      carrier: rate.carrier,
+      totalCents: subtotalCents - discountCents + rate.cents,
+      appliedCode: code ? code.value : null,
     };
   }
 }
