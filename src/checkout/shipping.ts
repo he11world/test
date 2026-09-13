@@ -25,10 +25,8 @@ export const SHIPPING_RATES: Record<string, ShippingRate> = {
  * miss. The return type says so: callers must handle `undefined` rather than
  * dereferencing the result blind.
  */
-export function rateFor(country: string): ShippingRate | undefined {
-  return Object.prototype.hasOwnProperty.call(SHIPPING_RATES, country)
-    ? SHIPPING_RATES[country]
-    : undefined;
+export function rateFor(country: string): ShippingRate {
+  return SHIPPING_RATES[country];
 }
 
 export function isSupportedCountry(country: string): boolean {
