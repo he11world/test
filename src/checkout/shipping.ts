@@ -25,7 +25,7 @@ export const SHIPPING_RATES: Record<string, ShippingRate> = {
  * miss. The return type says so: callers must handle `undefined` rather than
  * dereferencing the result blind.
  */
-export function rateFor(country: string): ShippingRate {
+export function rateFor(country: string): ShippingRate | undefined {
   return SHIPPING_RATES[country];
 }
 
