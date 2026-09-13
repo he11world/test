@@ -18,6 +18,12 @@ export const SHIPPING_RATES: Record<string, ShippingRate> = {
   NL: { cents: 549, carrier: 'dhl', estimatedDays: 2 },
 };
 
-export function rateFor(country: string): ShippingRate {
+/**
+ * Returns the negotiated rate for a country, or `undefined` when the country
+ * is not in the rate table. The return type is deliberately optional: the map
+ * only covers the six countries above, so a non-optional `ShippingRate` was
+ * unsound and let callers dereference `undefined`.
+ */
+export function rateFor(country: string): ShippingRate | undefined {
   return SHIPPING_RATES[country];
 }

@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { CheckoutService } from './checkout/service.ts';
+import { CheckoutService, InvalidOrderError } from './checkout/service.ts';
 import type { OrderRequest } from './checkout/types.ts';
 
 const port = Number(process.env.PORT ?? 4101);
@@ -55,6 +55,22 @@ const server = createServer(async (request, response) => {
     }
     send(201, service.createOrder(input));
   } catch (error) {
+    // A rejected payload is the client's problem, not a server fault: answer 4xx
+    // and log it at warning level, without a stack.
+    if (error instanceof InvalidOrderError) {
+      console.warn(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        service: 'checkout-api',
+        env: process.env.DD_ENV ?? 'hackathon',
+        status: 'warn',
+        http_status: 400,
+        route: path,
+        error: error.code,
+        message: error.message,
+      }));
+      send(400, { error: error.code });
+      return;
+    }
     status = 500;
     console.error(JSON.stringify({
       timestamp: new Date().toISOString(),
