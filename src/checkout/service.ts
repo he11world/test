@@ -15,18 +15,19 @@ export class CheckoutService {
       0,
     );
 
-    // This line was never changed. PR #377 only widened the type around it, which
-    // is what makes attribution interesting: the failing code is untouched by the
-    // deployment that broke it.
-    const code = request.discountCode;
-    const discountCents = Math.round(subtotalCents * (code.percentOff / 100));
+    // `OrderRequest.discountCode` is optional/nullable: checkout may be submitted
+    // without a code. Absent code means no discount rather than an error.
+    const code = request.discountCode ?? null;
+    const discountCents = code
+      ? Math.round(subtotalCents * (code.percentOff / 100))
+      : 0;
 
     return {
       customerId: request.customerId,
       subtotalCents,
       discountCents,
       totalCents: subtotalCents - discountCents,
-      appliedCode: code.value,
+      appliedCode: code ? code.value : null,
     };
   }
 }
