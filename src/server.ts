@@ -77,7 +77,11 @@ const server = createServer(async (request, response) => {
       timestamp: new Date().toISOString(),
       service: 'checkout-api',
       env: process.env.DD_ENV ?? 'hackathon',
-      status: status >= 500 ? 'error' : 'info',
+      // An access log, not an error, whatever the HTTP status was. The failure is
+      // logged separately above with a message and a stack. Emitting this at error
+      // level too produced one information-free error event per request, which
+      // crowded the real failures out of any bounded log query.
+      status: 'info',
       http_status: status,
       route: path,
       method: request.method,
