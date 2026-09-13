@@ -52,7 +52,12 @@ const server = createServer(async (request, response) => {
       timestamp: new Date().toISOString(),
       service: 'checkout-api',
       env: process.env.DD_ENV ?? 'hackathon',
-      status,
+      // `status` is Datadog's RESERVED attribute for log level, not for an HTTP
+      // code. Emitting the number here made every error log land as `info`, so a
+      // search for status:error returned nothing while the errors were plainly
+      // there. The HTTP code keeps its own field.
+      status: 'error',
+      http_status: status,
       route: path,
       error: error instanceof Error ? error.name : 'UnknownError',
       message: error instanceof Error ? error.message : String(error),
@@ -64,9 +69,10 @@ const server = createServer(async (request, response) => {
       timestamp: new Date().toISOString(),
       service: 'checkout-api',
       env: process.env.DD_ENV ?? 'hackathon',
+      status: status >= 500 ? 'error' : 'info',
+      http_status: status,
       route: path,
       method: request.method,
-      status,
       duration_ms: Date.now() - started,
     }));
   }
