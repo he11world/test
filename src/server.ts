@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import { CheckoutService } from './checkout/service.ts';
+import { CheckoutValidationError } from './checkout/errors.ts';
 import type { OrderRequest } from './checkout/types.ts';
 
 const port = Number(process.env.PORT ?? 4101);
@@ -55,23 +56,30 @@ const server = createServer(async (request, response) => {
     }
     send(201, service.createOrder(input));
   } catch (error) {
-    status = 500;
-    console.error(JSON.stringify({
-      timestamp: new Date().toISOString(),
-      service: 'checkout-api',
-      env: process.env.DD_ENV ?? 'hackathon',
-      // `status` is Datadog's RESERVED attribute for log level, not for an HTTP
-      // code. Emitting the number here made every error log land as `info`, so a
-      // search for status:error returned nothing while the errors were plainly
-      // there. The HTTP code keeps its own field.
-      status: 'error',
-      http_status: status,
-      route: path,
-      error: error instanceof Error ? error.name : 'UnknownError',
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    }));
-    send(500, { error: 'checkout_failed' });
+    // Input the service deliberately refuses to price is a client error, not a
+    // server fault: answer 400 with the machine-readable code and do not emit an
+    // error-level log for it.
+    if (error instanceof CheckoutValidationError) {
+      send(400, { error: error.code, message: error.message });
+    } else {
+      status = 500;
+      console.error(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        service: 'checkout-api',
+        env: process.env.DD_ENV ?? 'hackathon',
+        // `status` is Datadog's RESERVED attribute for log level, not for an HTTP
+        // code. Emitting the number here made every error log land as `info`, so a
+        // search for status:error returned nothing while the errors were plainly
+        // there. The HTTP code keeps its own field.
+        status: 'error',
+        http_status: status,
+        route: path,
+        error: error instanceof Error ? error.name : 'UnknownError',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      }));
+      send(500, { error: 'checkout_failed' });
+    }
   } finally {
     console.log(JSON.stringify({
       timestamp: new Date().toISOString(),
