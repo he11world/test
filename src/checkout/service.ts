@@ -2,12 +2,14 @@ import type { OrderRequest } from './types.ts';
 import { rateFor } from './shipping.ts';
 import { CheckoutValidationError } from './errors.ts';
 import { supportedCountries } from './shipping.ts';
+import { giftWrapPrice } from './gift-wrap.ts';
 
 export interface Order {
   customerId: string;
   subtotalCents: number;
   discountCents: number;
   shippingCents: number;
+  giftWrapCents: number;
   carrier: string;
   totalCents: number;
   appliedCode: string | null;
@@ -44,13 +46,16 @@ export class CheckoutService {
       );
     }
 
+    const giftWrapCents = request.giftWrap ? giftWrapPrice(request.giftWrap.style).cents : 0;
+
     return {
       customerId: request.customerId,
       subtotalCents,
       discountCents,
       shippingCents: rate.cents,
+      giftWrapCents,
       carrier: rate.carrier,
-      totalCents: subtotalCents - discountCents + rate.cents,
+      totalCents: subtotalCents - discountCents + rate.cents + giftWrapCents,
       appliedCode: code ? code.value : null,
     };
   }

@@ -8,6 +8,13 @@ export interface ShippingDestination {
   postcode: string;
 }
 
+export type GiftWrapStyle = 'standard' | 'premium';
+
+export interface GiftWrap {
+  style: GiftWrapStyle;
+  message?: string;
+}
+
 export interface OrderRequest {
   customerId: string;
   items: { sku: string; quantity: number; unitPriceCents: number }[];
@@ -17,4 +24,5 @@ export interface OrderRequest {
    * type, so the service must check for it at runtime rather than assume it.
    */
   destination?: ShippingDestination;
+  giftWrap?: GiftWrap;
 }
