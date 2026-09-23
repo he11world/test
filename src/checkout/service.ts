@@ -2,7 +2,7 @@ import type { OrderRequest } from './types.ts';
 import { rateFor } from './shipping.ts';
 import { CheckoutValidationError } from './errors.ts';
 import { supportedCountries } from './shipping.ts';
-import { giftWrapPrice } from './gift-wrap.ts';
+import { giftWrapPrice, supportedGiftWrapStyles } from './gift-wrap.ts';
 
 export interface Order {
   customerId: string;
@@ -46,7 +46,22 @@ export class CheckoutService {
       );
     }
 
-    const giftWrapCents = request.giftWrap ? giftWrapPrice(request.giftWrap.style).cents : 0;
+    // Same shape of problem as the shipping rate above: only the styles in
+    // GIFT_WRAP_PRICES are priced, and the style arrives as unvalidated JSON, so
+    // the lookup can miss. Reject the request instead of dereferencing undefined.
+    let giftWrapCents = 0;
+    const giftWrap = request.giftWrap;
+    if (giftWrap) {
+      const wrapPrice = giftWrapPrice(giftWrap.style);
+      if (!wrapPrice) {
+        throw new CheckoutValidationError(
+          'unsupported_gift_wrap_style',
+          `No gift wrap is available for style '${String(giftWrap.style)}'. ` +
+            `Supported styles: ${supportedGiftWrapStyles().join(', ')}.`,
+        );
+      }
+      giftWrapCents = wrapPrice.cents;
+    }
 
     return {
       customerId: request.customerId,
